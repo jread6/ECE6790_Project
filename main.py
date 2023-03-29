@@ -42,3 +42,6 @@ def main():
 
         # Print episode statistics
         print(f"Episode {episode + 1}, total reward: {total_reward}")
+
+if __name__ == "__main__":
+    main()

@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+# chatGPT implementation. Currently has some bugs
+
 class DQN(nn.Module):
     def __init__(self, input_shape, n_actions):
         super().__init__()
@@ -83,7 +85,9 @@ class Agent():
         next_states = torch.tensor(next_states, device=self.device)
         dones = torch.tensor(dones, device=self.device)
 
-        q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        print(self.policy_net(states).shape, actions.shape)
+        q_values = self.policy_net(states)
+        q_values = q_values[range(len(actions)), actions]
         next_q_values = self.target_net(next_states).max(1)[0].contiguous().detach()
         expected_q_values = rewards + self.gamma * next_q_values * (1 - dones)
         loss = self.loss_fn(q_values, expected_q_values)
