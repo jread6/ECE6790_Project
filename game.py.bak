@@ -60,8 +60,6 @@ class GridWorldEnv(gym.Env):
 
         done = (self.agent_pos == self.goal_pos)
         reward = 1 if done else -1
-        
-        ##Uncomment modified rewards based on direction of motion below
         #reward = 1 if self.distance(self.goal_pos,self.agent_pos)<self.distance(self.goal_pos,prev_pos) else -1
         #reward = self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos)
         observation = self._get_observation()
