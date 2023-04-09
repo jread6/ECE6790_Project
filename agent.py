@@ -44,7 +44,7 @@ class ReplayBuffer():
         return len(self.buffer)
 
 class Agent():
-    def __init__(self, env, gamma=0.99, eps_start=1.0, eps_end=0.01, eps_decay=0.9995, lr=1e-3, memory_size=10000, batch_size=128, target_update=10):
+    def __init__(self, env, gamma=0.99, eps_start=1, eps_end=0.01, eps_decay=0.9995, lr=1e-3, memory_size=10000, batch_size=128, target_update=10):
         self.env = env
         self.gamma = gamma
         self.eps_start = eps_start
@@ -64,6 +64,7 @@ class Agent():
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
         self.loss_fn = nn.SmoothL1Loss()
+        #self.loss_fn = nn.MSELoss()
 
     def select_action(self, state, eps):
         if random.random() < eps:
@@ -94,8 +95,8 @@ class Agent():
         
         next_q_values = self.target_net(next_states.reshape((next_states.shape[0], next_states.shape[1]*next_states.shape[2]))).max(1)[0].contiguous().detach()
         expected_q_values = rewards + self.gamma * next_q_values * (1-dones.to(torch.int))
+        
         loss = self.loss_fn(q_values, expected_q_values)
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -125,6 +126,6 @@ class Agent():
 
             rewards.append(episode_reward)
             eps = max(self.eps_end, eps * self.eps_decay)
-            print(f"Episode: {episode+1}, reward: {episode_reward:.2f}, eps: {eps:.2f}")
+            print(f"Episode: {episode+1}, reward: {episode_reward:.2f}, eps: {eps:.2f}, steps: {self.steps}")
 
         return rewards

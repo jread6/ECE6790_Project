@@ -5,7 +5,8 @@ NUM_EPISODES = 1000
 EPS_MIN = 0.01
 
 def main():
-    env = GridWorldEnv()
+    size = 5
+    env = GridWorldEnv(size = size)
     agent = Agent(env)
     rewards_vs_episodes = agent.train(NUM_EPISODES)
     plt.plot(rewards_vs_episodes)

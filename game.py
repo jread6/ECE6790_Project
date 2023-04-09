@@ -63,7 +63,7 @@ class GridWorldEnv(gym.Env):
         
         ##Uncomment modified rewards based on direction of motion below
         #reward = 1 if self.distance(self.goal_pos,self.agent_pos)<self.distance(self.goal_pos,prev_pos) else -1
-        #reward = self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos)
+        #reward = float(1/((self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos))+1e-3))
         observation = self._get_observation()
         return observation, reward, done, {}
     
@@ -84,4 +84,5 @@ class GridWorldEnv(gym.Env):
     def _get_observation(self):
         observation = np.zeros((self.size, self.size))
         observation[tuple(self.agent_pos)] = 1
+        observation[tuple(self.goal_pos)] = -1
         return observation
