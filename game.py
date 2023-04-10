@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 import random
 import pyglet
@@ -59,16 +59,17 @@ class GridWorldEnv(gym.Env):
             self.agent_pos[1] = max(0, self.agent_pos[1] - 1)
 
         done = (self.agent_pos == self.goal_pos)
-        reward = 1 if done else -1
+        # reward = 1 if done else -1
         
         ##Uncomment modified rewards based on direction of motion below
-        #reward = 1 if self.distance(self.goal_pos,self.agent_pos)<self.distance(self.goal_pos,prev_pos) else -1
-        #reward = float(1/((self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos))+1e-3))
+        # reward = 1 if self.distance(self.goal_pos,self.agent_pos)<self.distance(self.goal_pos,prev_pos) else -1
+        # reward = float(1/((self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos))+1e-3))
+        reward = 10 if done else 1 - self.distance(self.goal_pos,self.agent_pos)
         observation = self._get_observation()
         return observation, reward, done, {}
     
     def distance(self, pos1, pos2):
-        return (pos1[0]-pos2[0])**2+(pos1[1]-pos2[1])**2
+        return ((pos1[0]-pos2[0])**2+(pos1[1]-pos2[1])**2)**0.5
     
     def reset(self):
         self.agent_pos = [int(self.size/2), int(self.size/2)]

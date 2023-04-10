@@ -1,56 +1,50 @@
 from game import GridWorldEnv
 from agent import Agent
 from matplotlib import pyplot as plt
-NUM_EPISODES = 1000
+import torch
+import numpy as np
+NUM_EPISODES = 500
 EPS_MIN = 0.01
 
 def main():
-    size = 5
+    size = 9
     env = GridWorldEnv(size = size)
-    agent = Agent(env)
+    agent = Agent(env, eps_start=0.5, eps_decay=0.995)
+
+    load_weights = False
+
+    if load_weights:
+        # Load the saved state dictionary
+        state_dict = torch.load('policy_net_weights_E2.pth')
+        
+        # Update the agent's policy network parameters
+        agent.policy_net.load_state_dict(state_dict)
+
+    # Train for 50 episodes
     rewards_vs_episodes = agent.train(NUM_EPISODES)
+
+    np.savetxt('rewards_vs_episodes_Full.csv', rewards_vs_episodes, delimiter=',')
+
+    # Save the state dictionary of the agent's policy network
+    torch.save(agent.policy_net.state_dict(), 'policy_net_weights_Full.pth')
+
     plt.plot(rewards_vs_episodes)
     plt.show()
-    #assert 1==0
 
-    # for episode in range(NUM_EPISODES):
-        # state = env.reset()
-        # total_reward = 0
-        # done = False
-        
-        # #env.render()
 
-        # while not done:
-            # # Choose action
-            # action = agent.select_action(state, eps=agent.eps_start)
-            # #env.step(action)
+    # # Load the saved state dictionary
+    # state_dict = torch.load('policy_net_weights.pth')
+    
+    # # Update the agent's policy network parameters
+    # agent.policy_net.load_state_dict(state_dict)
+    
+    # # Traing for 50 more episodes
+    # rewards_vs_episodes = agent.train(NUM_EPISODES)
+    # plt.plot(rewards_vs_episodes)
+    # plt.show()
 
-            # # Take step
-            # next_state, reward, done, _ = env.step(action)
-
-            # # Add to replay buffer
-            # agent.memory.push(state, action, reward, next_state, done)
-
-            # # Update state and total reward
-            # state = next_state
-            # total_reward += reward
-
-            # # Optimize model
-            # agent.optimize_model()
-
-            # # Update target network
-            # if agent.steps % agent.target_update == 0:
-                # agent.target_net.load_state_dict(agent.policy_net.state_dict())
-
-            # # Decay epsilon
-            # agent.eps_start = max(agent.eps_start * agent.eps_decay, EPS_MIN)
-
-            # # Increment step counter
-            # agent.steps += 1
-        # #env.reset()
-
-        # # Print episode statistics
-        # print(f"Episode {episode + 1}, total reward: {total_reward}")
+    # # Save the state dictionary of the agent's policy network
+    # torch.save(agent.policy_net.state_dict(), 'policy_net_weights_E2.pth')
 
 if __name__ == "__main__":
     main()

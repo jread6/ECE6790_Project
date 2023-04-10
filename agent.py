@@ -1,4 +1,4 @@
-import gym
+import gymnasium
 import numpy as np
 import random
 import torch
@@ -44,7 +44,7 @@ class ReplayBuffer():
         return len(self.buffer)
 
 class Agent():
-    def __init__(self, env, gamma=0.99, eps_start=1, eps_end=0.01, eps_decay=0.9995, lr=1e-3, memory_size=10000, batch_size=128, target_update=10):
+    def __init__(self, env, gamma=0.99, eps_start=0.5, eps_end=0.01, eps_decay=0.995, lr=1e-3, memory_size=10000, batch_size=128, target_update=10):
         self.env = env
         self.gamma = gamma
         self.eps_start = eps_start
@@ -67,7 +67,7 @@ class Agent():
         #self.loss_fn = nn.MSELoss()
 
     def select_action(self, state, eps):
-        if random.random() < eps:
+        if random.random() > eps:
             with torch.no_grad():
                 state = torch.tensor(state, device=self.device)
                 state = state.unsqueeze(0)
@@ -104,13 +104,16 @@ class Agent():
     def train(self, num_episodes):
         eps = self.eps_start
         rewards = []
+        self.env.reset()
         
         for episode in range(num_episodes):
             state = self.env.reset()
             done = False
             episode_reward = 0
+            iter = 0
 
             while not done:
+                self.env.render()
                 action = self.select_action(state, eps)
                 next_state, reward, done, _ = self.env.step(action)
                 self.memory.push(state, action, reward, next_state, done)
