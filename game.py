@@ -74,7 +74,7 @@ class GridWorldEnv(gym.Env):
     def reset(self):
         self.agent_pos = [int(self.size/2), int(self.size/2)]
         self.goal_pos = random.choice(self.potential_goal_positions)
-        return self._get_observation()
+        return self._get_observation(), self.goal_pos
     
     def render(self):
         self.window.switch_to()
