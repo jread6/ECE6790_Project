@@ -11,8 +11,9 @@ def main():
     env = GridWorldEnv(size = size)
 
     load_weights = False
-    train = True
-    test = True
+    train = False
+    test = False
+    kalman = True
 
     network_type = 'small'
 
@@ -44,29 +45,28 @@ def main():
         # Update the agent's policy network parameters
         agent.policy_net.load_state_dict(state_dict)
 
-        num_trials=100
+        num_trials=20000
         rewards_vs_episodes, goal_positions = agent.test(num_trials)
-
         # # write results to a file
-        # activations = agent.policy_net.activations.cpu().numpy()
-        # np.savetxt('network_activations_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', activations, delimiter=',')
+        activations = agent.policy_net.activations.cpu().numpy()
+        np.savetxt('data/network_activations_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', activations, delimiter=',')
 
-        # # np.savetxt('rewards_vs_episodes_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', rewards_vs_episodes, delimiter=',')
+        # np.savetxt('rewards_vs_episodes_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', rewards_vs_episodes, delimiter=',')
         # np.savetxt('goal_positions_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', goal_positions, delimiter=',')
+        
+    if kalman:
+        print("Kalman")
+        agent = Agent(env, batch_size=1)
+        # Load the saved state dictionary
+        state_dict = torch.load('policy_net_weights_'+str(network_type)+'_train.pth')
+        
+        # Update the agent's policy network parameters
+        agent.policy_net.load_state_dict(state_dict)
 
-    # # Load the saved state dictionary
-    # state_dict = torch.load('policy_net_weights.pth')
-    
-    # # Update the agent's policy network parameters
-    # agent.policy_net.load_state_dict(state_dict)
-    
-    # # Traing for 50 more episodes
-    # rewards_vs_episodes = agent.train(NUM_EPISODES)
-    # plt.plot(rewards_vs_episodes)
-    # plt.show()
-
-    # # Save the state dictionary of the agent's policy network
-    # torch.save(agent.policy_net.state_dict(), 'policy_net_weights_E2.pth')
+        num_trials=5000
+        rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials)
+        np.savetxt('positions.csv', goal_positions, delimiter=',')
+        np.savetxt('factors.csv', factors, delimiter=',')
 
 if __name__ == "__main__":
     main()

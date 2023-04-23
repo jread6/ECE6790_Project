@@ -4,6 +4,15 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from joblib import dump, load
+import numpy as np
+from filterpy.kalman import KalmanFilter
+import time
+import warnings
+warnings.filterwarnings('ignore')
+import pickle
+
+
 
 class DQN(nn.Module):
     def __init__(self, input_shape, n_actions):
@@ -29,9 +38,10 @@ class DQN(nn.Module):
                 x = layer(x)
                 if isinstance(layer, nn.ReLU):
                     self.activations=torch.cat((self.activations, x), 0)
+                    activations = x
         else:
             x = self.fc(x)
-        return x
+        return x , activations
 
 class ReplayBuffer():
     def __init__(self, capacity):
@@ -82,11 +92,11 @@ class Agent():
                 state = torch.tensor(state, device=self.device)
                 state = state.unsqueeze(0)
                 
-                q_values = self.policy_net(state.reshape((state.shape[0], state.shape[1]*state.shape[2])), save_activations=save_activations)
+                q_values, activations = self.policy_net(state.reshape((state.shape[0], state.shape[1]*state.shape[2])), save_activations=save_activations)
                 action = q_values.argmax().item()
         else:
             action = self.env.action_space.sample()
-        return action
+        return action, activations
 
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
@@ -153,7 +163,7 @@ class Agent():
             while not done:
                 goal_positions = np.append(goal_positions, np.array([[episode+1, goal_pos[0], goal_pos[1]]]), axis=0)
                 self.env.render()
-                action = self.select_action(state, 0, save_activations=True)
+                action, _ = self.select_action(state, 0, save_activations=True)
                 next_state, reward, done, _ = self.env.step(action)
                 state = next_state
                 episode_reward += reward
@@ -161,3 +171,79 @@ class Agent():
             print(f"Episode: {episode+1}, reward: {episode_reward:.2f}")
 
         return rewards, goal_positions
+    
+    def kalman(self, num_episodes):
+        rewards = []
+        goal_positions = np.empty((0,2))
+        fa_loaded = load('fa_model.joblib')
+        factors = np.empty((0, 6))
+        # define Kalman filter
+        kf = KalmanFilter(dim_x=6, dim_z=2)
+
+        # define state transition matrix
+        A = np.array([[1., 0., 1., 0., 0.5, 0.],
+                      [0., 1., 0., 1., 0., 0.5],
+                      [0., 0., 1., 0., 1., 0.],
+                      [0., 0., 0., 1., 0., 1.],
+                      [0., 0., 0., 0., 1., 0.],
+                      [0., 0., 0., 0., 0., 1.]])
+
+        kf.F = A
+
+        # define observation matrix
+        H = np.array([[1., 0., 0., 0., 0., 0.],
+                      [0., 1., 0., 0., 0., 0.]])
+
+        kf.H = H
+
+        # define measurement noise covariance matrix
+        R = np.array([[0.1, 0.],
+                      [0., 0.1]])
+
+        kf.R = R
+
+        # define initial state vector
+        x = np.array([[0., 0., 0., 0., 0., 0.]]).T
+
+        kf.x = x
+
+        # define initial state covariance matrix
+        P = np.array([[1., 0., 0., 0., 0., 0.],
+                      [0., 1., 0., 0., 0., 0.],
+                      [0., 0., 1., 0., 0., 0.],
+                      [0., 0., 0., 1., 0., 0.],
+                      [0., 0., 0., 0., 1., 0.],
+                      [0., 0., 0., 0., 0., 1.]])
+
+        kf.P = P
+        
+        with open('perceptron_model_action.pkl', 'rb') as file:
+            model_action = pickle.load(file)
+        
+
+        for episode in range(num_episodes):
+            state, goal_pos = self.env.reset()
+            done = False
+            episode_reward = 0
+            while not done:
+                self.env.render()
+                action, activations = self.select_action(state, 0, save_activations=True)
+                numpy_activations = activations.cpu().numpy()
+                new_factors = fa_loaded.transform(numpy_activations)
+                print(new_factors)
+                predicted_action = model_action.predict(new_factors)
+                print(predicted_action,action)
+                factors = np.vstack([factors, new_factors])
+                index = np.where(state == 1)
+                coord = np.array([list(x) for x in zip(index[0], index[1])])
+                coord = coord.flatten()
+                goal_positions = np.append(goal_positions, np.array([[episode+1, action]]), axis=0)
+                next_state, reward, done, _ = self.env.step(predicted_action)
+                state = next_state
+                episode_reward += reward
+           
+            rewards.append(episode_reward)
+            #print(f"Episode: {episode+1}, reward: {episode_reward:.2f}")
+
+        return rewards, goal_positions, factors
+    
