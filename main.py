@@ -14,6 +14,7 @@ def main():
     train = False
     test = False
     kalman = True
+    dimrec = True
 
     network_type = 'small'
 
@@ -55,18 +56,22 @@ def main():
         # np.savetxt('goal_positions_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', goal_positions, delimiter=',')
         
     if kalman:
-        print("Kalman")
+        print("Dimensional Reduction")
         agent = Agent(env, batch_size=1)
         # Load the saved state dictionary
         state_dict = torch.load('policy_net_weights_'+str(network_type)+'_train.pth')
         
         # Update the agent's policy network parameters
         agent.policy_net.load_state_dict(state_dict)
-
-        num_trials=5000
-        rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials)
-        np.savetxt('positions.csv', goal_positions, delimiter=',')
-        np.savetxt('factors.csv', factors, delimiter=',')
+        
+        num_trials=10000
+        rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials,dimrec=dimrec)
+        if (dimrec):
+            np.savetxt('positions_dimrec.csv', goal_positions, delimiter=',')
+            np.savetxt('factors_dimrec.csv', factors, delimiter=',')
+        else:
+            np.savetxt('positions.csv', goal_positions, delimiter=',')
+            np.savetxt('factors.csv', factors, delimiter=',')
 
 if __name__ == "__main__":
     main()

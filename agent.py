@@ -172,50 +172,11 @@ class Agent():
 
         return rewards, goal_positions
     
-    def kalman(self, num_episodes):
+    def kalman(self, num_episodes,dimrec=False):
         rewards = []
-        goal_positions = np.empty((0,2))
+        goal_positions = np.empty((0,4))
         fa_loaded = load('fa_model.joblib')
         factors = np.empty((0, 6))
-        # define Kalman filter
-        kf = KalmanFilter(dim_x=6, dim_z=2)
-
-        # define state transition matrix
-        A = np.array([[1., 0., 1., 0., 0.5, 0.],
-                      [0., 1., 0., 1., 0., 0.5],
-                      [0., 0., 1., 0., 1., 0.],
-                      [0., 0., 0., 1., 0., 1.],
-                      [0., 0., 0., 0., 1., 0.],
-                      [0., 0., 0., 0., 0., 1.]])
-
-        kf.F = A
-
-        # define observation matrix
-        H = np.array([[1., 0., 0., 0., 0., 0.],
-                      [0., 1., 0., 0., 0., 0.]])
-
-        kf.H = H
-
-        # define measurement noise covariance matrix
-        R = np.array([[0.1, 0.],
-                      [0., 0.1]])
-
-        kf.R = R
-
-        # define initial state vector
-        x = np.array([[0., 0., 0., 0., 0., 0.]]).T
-
-        kf.x = x
-
-        # define initial state covariance matrix
-        P = np.array([[1., 0., 0., 0., 0., 0.],
-                      [0., 1., 0., 0., 0., 0.],
-                      [0., 0., 1., 0., 0., 0.],
-                      [0., 0., 0., 1., 0., 0.],
-                      [0., 0., 0., 0., 1., 0.],
-                      [0., 0., 0., 0., 0., 1.]])
-
-        kf.P = P
         
         with open('perceptron_model_action.pkl', 'rb') as file:
             model_action = pickle.load(file)
@@ -232,15 +193,23 @@ class Agent():
                 new_factors = fa_loaded.transform(numpy_activations)
                 predicted_action = model_action.predict(new_factors)
                 predicted_action = round(predicted_action[0])
-                print(predicted_action,action)
                 factors = np.vstack([factors, new_factors])
-                goal_positions = np.append(goal_positions, np.array([[episode+1, action]]), axis=0)
-                next_state, reward, done, _ = self.env.step(predicted_action)
+                index = np.where(state == 1)
+                coord = np.array([list(x) for x in zip(index[0], index[1])])
+                coord = coord.flatten()
+                goal_positions = np.append(goal_positions, np.array([[episode+1,coord[0],coord[1], action]]), axis=0)
+                
+                if(dimrec):
+                    action = predicted_action
+                else:
+                    action = action
+                
+                next_state, reward, done, _ = self.env.step(action)
                 state = next_state
                 episode_reward += reward
            
             rewards.append(episode_reward)
-            #print(f"Episode: {episode+1}, reward: {episode_reward:.2f}")
+            print(f"Episode: {episode+1}, reward: {episode_reward:.2f}")
 
         return rewards, goal_positions, factors
     
