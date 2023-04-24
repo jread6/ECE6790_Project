@@ -64,7 +64,7 @@ def main():
         # Update the agent's policy network parameters
         agent.policy_net.load_state_dict(state_dict)
         
-        num_trials=10000
+        num_trials=1000
         rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials,dimrec=dimrec)
         if (dimrec):
             np.savetxt('positions_dimrec.csv', goal_positions, delimiter=',')
