@@ -172,7 +172,7 @@ class Agent():
 
         return rewards, goal_positions
     
-    def kalman(self, num_episodes,dimrec=False):
+    def dimrec_estimation(self, num_episodes,dimrec=False):
         rewards = []
         goal_positions = np.empty((0,4))
         fa_loaded = load('fa_model.joblib')

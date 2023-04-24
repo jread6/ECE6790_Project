@@ -13,7 +13,7 @@ def main():
     load_weights = False
     train = False
     test = False
-    kalman = True
+    dimrec_estimation = True
     dimrec = True
 
     network_type = 'small'
@@ -55,7 +55,7 @@ def main():
         # np.savetxt('rewards_vs_episodes_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', rewards_vs_episodes, delimiter=',')
         # np.savetxt('goal_positions_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', goal_positions, delimiter=',')
         
-    if kalman:
+    if dimrec_estimation:
         print("Dimensional Reduction")
         agent = Agent(env, batch_size=1)
         # Load the saved state dictionary
@@ -65,7 +65,7 @@ def main():
         agent.policy_net.load_state_dict(state_dict)
         
         num_trials=1000
-        rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials,dimrec=dimrec)
+        rewards_vs_episodes, goal_positions, factors = agent.dimrec_estimation(num_trials,dimrec=dimrec)
         if (dimrec):
             np.savetxt('positions_dimrec.csv', goal_positions, delimiter=',')
             np.savetxt('factors_dimrec.csv', factors, delimiter=',')
