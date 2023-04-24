@@ -1,47 +1,77 @@
 from game import GridWorldEnv
 from agent import Agent
-
-NUM_EPISODES = 100
+from matplotlib import pyplot as plt
+import torch
+import numpy as np
+NUM_EPISODES = 500
 EPS_MIN = 0.01
 
 def main():
-    env = GridWorldEnv()
-    agent = Agent(env)
+    size = 9
+    env = GridWorldEnv(size = size)
 
-    for episode in range(NUM_EPISODES):
-        state = env.reset()
-        total_reward = 0
-        done = False
+    load_weights = False
+    train = False
+    test = False
+    kalman = True
+    dimrec = True
 
-        while not done:
-            # Choose action
-            action = agent.select_action(state, eps=agent.eps_end)
+    network_type = 'small'
 
-            # Take step
-            next_state, reward, done, _ = env.step(action)
+    # Train for 100 episodes
+    if train:
+        agent = Agent(env, eps_start=0.75, eps_decay=0.995, batch_size=128)
 
-            # Add to replay buffer
-            agent.memory.push(state, action, reward, next_state, done)
+        if load_weights:
+            # Load the saved state dictionary
+            state_dict = torch.load('policy_net_weights_'+str(network_type)+'.pth')
+            
+            # Update the agent's policy network parameters
+            agent.policy_net.load_state_dict(state_dict)
 
-            # Update state and total reward
-            state = next_state
-            total_reward += reward
+        rewards_vs_episodes = agent.train(NUM_EPISODES)
 
-            # Optimize model
-            agent.optimize_model()
+        np.savetxt('rewards_vs_episodes_'+str(network_type)+'.csv', rewards_vs_episodes, delimiter=',')
 
-            # Update target network
-            if agent.steps % agent.target_update == 0:
-                agent.target_net.load_state_dict(agent.policy_net.state_dict())
+        # Save the state dictionary of the agent's policy network
+        torch.save(agent.policy_net.state_dict(), 'policy_net_weights_'+str(network_type)+'_train.pth')
 
-            # Decay epsilon
-            agent.eps_end = max(agent.eps_end * agent.eps_decay, EPS_MIN)
+        plt.plot(rewards_vs_episodes)
+        plt.show()
+    if test:
+        agent = Agent(env, batch_size=1)
+        # Load the saved state dictionary
+        state_dict = torch.load('policy_net_weights_'+str(network_type)+'_train.pth')
+        
+        # Update the agent's policy network parameters
+        agent.policy_net.load_state_dict(state_dict)
 
-            # Increment step counter
-            agent.steps += 1
+        num_trials=20000
+        rewards_vs_episodes, goal_positions = agent.test(num_trials)
+        # # write results to a file
+        activations = agent.policy_net.activations.cpu().numpy()
+        np.savetxt('data/network_activations_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', activations, delimiter=',')
 
-        # Print episode statistics
-        print(f"Episode {episode + 1}, total reward: {total_reward}")
+        # np.savetxt('rewards_vs_episodes_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', rewards_vs_episodes, delimiter=',')
+        # np.savetxt('goal_positions_'+str(network_type)+'_'+str(num_trials)+'_trials.csv', goal_positions, delimiter=',')
+        
+    if kalman:
+        print("Dimensional Reduction")
+        agent = Agent(env, batch_size=1)
+        # Load the saved state dictionary
+        state_dict = torch.load('policy_net_weights_'+str(network_type)+'_train.pth')
+        
+        # Update the agent's policy network parameters
+        agent.policy_net.load_state_dict(state_dict)
+        
+        num_trials=1000
+        rewards_vs_episodes, goal_positions, factors = agent.kalman(num_trials,dimrec=dimrec)
+        if (dimrec):
+            np.savetxt('positions_dimrec.csv', goal_positions, delimiter=',')
+            np.savetxt('factors_dimrec.csv', factors, delimiter=',')
+        else:
+            np.savetxt('positions.csv', goal_positions, delimiter=',')
+            np.savetxt('factors.csv', factors, delimiter=',')
 
 if __name__ == "__main__":
     main()

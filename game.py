@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 import random
 import pyglet
@@ -48,6 +48,7 @@ class GridWorldEnv(gym.Env):
                                             agent_x + 50, agent_y + 50, agent_x, agent_y + 50)))
             
     def step(self, action):
+        prev_pos = self.agent_pos
         if action == 0: # up
             self.agent_pos[0] = max(0, self.agent_pos[0] - 1)
         elif action == 1: # right
@@ -58,14 +59,22 @@ class GridWorldEnv(gym.Env):
             self.agent_pos[1] = max(0, self.agent_pos[1] - 1)
 
         done = (self.agent_pos == self.goal_pos)
-        reward = 1 if done else -1
+        # reward = 1 if done else -1
+        
+        ##Uncomment modified rewards based on direction of motion below
+        # reward = 1 if self.distance(self.goal_pos,self.agent_pos)<self.distance(self.goal_pos,prev_pos) else -1
+        # reward = float(1/((self.distance(self.goal_pos,self.agent_pos)-self.distance(self.goal_pos,prev_pos))+1e-3))
+        reward = 10 if done else 1 - self.distance(self.goal_pos,self.agent_pos)
         observation = self._get_observation()
         return observation, reward, done, {}
-
+    
+    def distance(self, pos1, pos2):
+        return ((pos1[0]-pos2[0])**2+(pos1[1]-pos2[1])**2)**0.5
+    
     def reset(self):
         self.agent_pos = [int(self.size/2), int(self.size/2)]
         self.goal_pos = random.choice(self.potential_goal_positions)
-        return self._get_observation()
+        return self._get_observation(), self.goal_pos
     
     def render(self):
         self.window.switch_to()
@@ -76,4 +85,5 @@ class GridWorldEnv(gym.Env):
     def _get_observation(self):
         observation = np.zeros((self.size, self.size))
         observation[tuple(self.agent_pos)] = 1
+        observation[tuple(self.goal_pos)] = -1
         return observation
